@@ -23,7 +23,7 @@ def invert(img, name):
     
     
 def to_df(img, cols):
-    path = invert(image, "temp")
+    path = invert(img, "temp")
     data = API.process_file(filepath=path, output_format="df")
 
     df = data[0]
