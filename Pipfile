@@ -11,6 +11,8 @@ numpy = "*"
 streamlit-aggrid = "*"
 extracttable = "*"
 sqlalchemy = "*"
+pillow = "*"
+opencv-python = "*"
 
 [dev-packages]
 pytest = "*"
