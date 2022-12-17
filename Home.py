@@ -6,6 +6,13 @@ from PIL import Image
 from ExtractTable import ExtractTable
 from st_aggrid import AgGrid
 
+def invert(img):
+    colored = np.array(img)
+    colored = cv.cvtColor(colored, cv.COLOR_BGR2GRAY)
+    
+    _, t1 = cv.threshold(colored, 127, 255, cv.THRESH_BINARY_INV)
+    return Image.fromarray(t1)
+
 
 if __name__ == "__main__":
     with open("style.css") as f:
@@ -36,21 +43,10 @@ if __name__ == "__main__":
         image = Image.open(boxscore)
         image = image.resize([1200, 1200])
 
-        width, height = image.size
+        w, h = image.size
+        b1 = image.crop((400, h / 4.2, 1070, 1.7 * h / 4))
 
-        left = 400
-        top = height / 4.2
-        right = 1070
-        bottom = 1.7 * height / 4
-
-        final = image.crop((left, top, right, bottom))
-
-        colored = np.array(final)
-        colored = cv.cvtColor(colored, cv.COLOR_BGR2GRAY)
-
-        ret, t1 = cv.threshold(colored, 127, 255, cv.THRESH_BINARY_INV)
-
-        img = Image.fromarray(t1)
+        img = invert(b1)
         img.save("out.png")
 
         st.image(img)
