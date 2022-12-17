@@ -33,7 +33,7 @@ if __name__ == "__main__":
     """
     )
 
-    boxscore = st.file_uploader("Choose a boxscore", type=["png", "jpg"])
+    boxscore = st.file_uploader("Choose a boxscore", type=["png", "jpg", "jpeg"])
     if boxscore:
         image = Image.open(boxscore)
         image = image.resize([1200, 1200])
