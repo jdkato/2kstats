@@ -79,4 +79,4 @@ if __name__ == "__main__":
         ]
         df['Gamertag'] = df['Gamertag'].str.lstrip("*")
 
-        AgGrid(df, editable=True, fit_columns_on_grid_load=True)
+        AgGrid(df, editable=True)
