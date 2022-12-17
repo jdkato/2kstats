@@ -38,8 +38,6 @@ if __name__ == "__main__":
         image = Image.open(boxscore)
         image = image.resize([1200, 1200])
 
-        st.image(image)
-
         width, height = image.size
 
         left = 400
@@ -79,4 +77,4 @@ if __name__ == "__main__":
         ]
         df['Gamertag'] = df['Gamertag'].str.lstrip("*")
 
-        AgGrid(df, editable=True)
+        grid = AgGrid(df, editable=True)
