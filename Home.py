@@ -22,8 +22,15 @@ def invert(img, name):
     return path
     
     
-def to_df(img, name):
+def to_df(img, name, cols):
     path = invert(image, name)
+    data = API.process_file(filepath=path, output_format="df")
+
+    df = data[0]
+    df.columns = cols
+    df['Gamertag'] = df['Gamertag'].str.lstrip("*")
+    
+    return df
 
 
 if __name__ == "__main__":
@@ -62,11 +69,7 @@ if __name__ == "__main__":
         away = image.crop((400, h / 4.2, 1070, 1.7 * h / 4))
         st.image(away)
         
-        invert(away, "away")
-        table_data = et_sess.process_file(filepath="away.png", output_format="df")
-
-        df = table_data[0]
-        df.columns = [
+        df = to_df(away, "away", [
             "Gamertag",
             "GRD",
             "PTS",
@@ -78,7 +81,6 @@ if __name__ == "__main__":
             "TO",
             "FGM/FGA",
             "3PM/3PA",
-        ]
-        df['Gamertag'] = df['Gamertag'].str.lstrip("*")
+        ])
 
         grid = AgGrid(df, editable=True)
