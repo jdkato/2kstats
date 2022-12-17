@@ -12,7 +12,7 @@ streamlit-aggrid = "*"
 extracttable = "*"
 sqlalchemy = "*"
 pillow = "*"
-opencv-python = "*"
+opencv-python-headless = "*"
 
 [dev-packages]
 pytest = "*"
