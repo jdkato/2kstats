@@ -22,8 +22,8 @@ def invert(img, name):
     return path
     
     
-def to_df(img, name, cols):
-    path = invert(image, name)
+def to_df(img, cols):
+    path = invert(image, "temp")
     data = API.process_file(filepath=path, output_format="df")
 
     df = data[0]
@@ -68,7 +68,7 @@ if __name__ == "__main__":
         away = image.crop((400, h / 4.2, 1070, 1.7 * h / 4))
         st.image(away)
         
-        df = to_df(away, "away", [
+        df = to_df(away, [
             "Gamertag",
             "GRD",
             "PTS",
