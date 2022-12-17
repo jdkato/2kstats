@@ -6,14 +6,24 @@ from PIL import Image
 from ExtractTable import ExtractTable
 from st_aggrid import AgGrid
 
+API = ExtractTable(api_key=st.secrets["API_KEY"])
+
+
 def invert(img, name):
     colored = np.array(img)
     colored = cv.cvtColor(colored, cv.COLOR_BGR2GRAY)
     
     _, t1 = cv.threshold(colored, 127, 255, cv.THRESH_BINARY_INV)
-    made = Image.fromarray(t1)
     
-    made.save(f"{name}.png")
+    made = Image.fromarray(t1)
+    path = f"{name}.png"
+
+    made.save(path)
+    return path
+    
+    
+def to_df(img, name):
+    path = invert(image, name)
 
 
 if __name__ == "__main__":
