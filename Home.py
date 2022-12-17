@@ -81,6 +81,7 @@ if __name__ == "__main__":
             "FGM/FGA",
             "3PM/3PA",
         ])
+        df = df.drop('GRD', axis=1)
         df['Gamertag'] = df['Gamertag'].str.lstrip("*")
 
         grid = AgGrid(df, editable=True)
