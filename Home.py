@@ -39,6 +39,8 @@ if __name__ == "__main__":
     [1]: https://github.com/jdkato/blood-tigers#data-collection
     """
     )
+    
+    et_sess = ExtractTable(api_key=st.secrets["API_KEY"])
 
     boxscore = st.file_uploader("Choose a boxscore", type=["png", "jpg", "jpeg"])
     if boxscore:
@@ -51,8 +53,6 @@ if __name__ == "__main__":
         st.image(away)
         
         invert(away, "away")
-        et_sess = ExtractTable(api_key=st.secrets["API_KEY"])
-
         table_data = et_sess.process_file(filepath="away.png", output_format="df")
 
         df = table_data[0]
