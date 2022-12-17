@@ -85,3 +85,4 @@ if __name__ == "__main__":
         df['Gamertag'] = df['Gamertag'].str.lstrip("*")
 
         grid = AgGrid(df, editable=True)
+        st.caption("Edit the table above to fix any transcription mistakes.")
