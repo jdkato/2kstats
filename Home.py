@@ -28,7 +28,6 @@ def to_df(img, name, cols):
 
     df = data[0]
     df.columns = cols
-    df['Gamertag'] = df['Gamertag'].str.lstrip("*")
     
     return df
 
@@ -82,5 +81,6 @@ if __name__ == "__main__":
             "FGM/FGA",
             "3PM/3PA",
         ])
+        df['Gamertag'] = df['Gamertag'].str.lstrip("*")
 
         grid = AgGrid(df, editable=True)
