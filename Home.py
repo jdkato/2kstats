@@ -6,12 +6,14 @@ from PIL import Image
 from ExtractTable import ExtractTable
 from st_aggrid import AgGrid
 
-def invert(img):
+def invert(img, name):
     colored = np.array(img)
     colored = cv.cvtColor(colored, cv.COLOR_BGR2GRAY)
     
     _, t1 = cv.threshold(colored, 127, 255, cv.THRESH_BINARY_INV)
-    return Image.fromarray(t1)
+    made = Image.fromarray(t1)
+    
+    made.save(f"{name}.png")
 
 
 if __name__ == "__main__":
@@ -44,16 +46,14 @@ if __name__ == "__main__":
         image = image.resize([1200, 1200])
 
         w, h = image.size
-        b1 = image.crop((400, h / 4.2, 1070, 1.7 * h / 4))
-
-        img = invert(b1)
-        img.save("out.png")
-
-        st.image(img)
-
+        
+        away = image.crop((400, h / 4.2, 1070, 1.7 * h / 4))
+        st.image(away)
+        
+        invert(away, "away")
         et_sess = ExtractTable(api_key=st.secrets["API_KEY"])
 
-        table_data = et_sess.process_file(filepath="out.png", output_format="df")
+        table_data = et_sess.process_file(filepath="away.png", output_format="df")
 
         df = table_data[0]
         df.columns = [
