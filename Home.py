@@ -104,25 +104,13 @@ def boxscore(img):
     return df
 
 
-def upload(password):
-    if password == st.secrets["PASS"]:
-        st.info("Successfully uploaded game results.")
-    else:
-        st.error("Authentication failed.")
+def upload(game_type, home, away):
+    pass
+
 
 if __name__ == "__main__":
     with open("style.css") as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-
-    st.write(
-        f"""
-        # Welcome! :wave:
-
-        This app is designed to expedite the process of converting NBA2K
-        boxscores into queryable data structures, making it ideal for Pro-Am
-        leagues or other stat-tracking websites.
-        """
-    )
 
     st.warning(
         """
@@ -131,6 +119,25 @@ if __name__ == "__main__":
     [1]: https://github.com/jdkato/blood-tigers#data-collection
     """
     )
+
+    st.header("Welcome! :wave:")
+    st.write(
+        """
+        This app is designed to expedite the process of converting NBA2K
+        boxscores into queryable data structures, making it ideal for Pro-Am
+        leagues or other stat-tracking websites.
+        """
+    )
+    st.code(API.check_usage())
+
+    st.header("Step 1: Upload a screenshot")
+
+    col1, col2 = st.columns(2)
+
+    game_type = col1.radio(
+        "Game type", ["Pre Season", "Regular Season", "Post Season"], index=1
+    )
+    season = col2.number_input('Season', 1, 10)
 
     screenshot = st.file_uploader("Choose a boxscore", type=["png", "jpg", "jpeg"])
     if screenshot and check_password():
@@ -146,28 +153,28 @@ if __name__ == "__main__":
 
         w, h = image.size
 
-        st.header("Step 1: Home team")
+        st.header("Step 2: Verify results")
+
+        tab1, tab2 = st.tabs(["Home", "Away"])
 
         home_box = image.crop((400, h / 4.2, 1070, 1.7 * h / 4))
-        home = st.selectbox("Assign team", TEAMS, key=1)
-        st.image(home_box, use_column_width=True)
+        home = tab1.selectbox("Assign team", TEAMS, key=1)
+        tab1.image(home_box, use_column_width=True)
 
         home_df = boxscore(home_box)
-        home_grid = AgGrid(home_df, editable=True)
-
-        st.header("Step 2: Away team")
+        with tab1:
+            home_grid = AgGrid(home_df, editable=True)
 
         away_box = image.crop((400, h / 1.9, 1070, 2.9 * h / 4))
-        away = st.selectbox("Assign team", TEAMS, key=2)
-        st.image(away_box, use_column_width=True)
+        away = tab2.selectbox("Assign team", TEAMS, key=2)
+        tab2.image(away_box, use_column_width=True)
 
         away_df = boxscore(away_box)
-        away_grid = AgGrid(away_df, editable=True)
+        with tab2:
+            away_grid = AgGrid(away_df, editable=True)
 
-        st.header("Step 4: Upload results")
+        st.header("Step 3: Upload results")
+        st.info("Results will appear automatically on [banshee2k.gg](https://banshee2k.gg).")
 
-        game_type = st.radio(
-            "Game type", ["Pre Season", "Regular Season", "Post Season"], index=1
-        )
-
-        st.button("Upload results")
+        payload = lambda: upload(game_type, home_grid, away_grid)
+        st.button("Upload results", on_click=payload)
