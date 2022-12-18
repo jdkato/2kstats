@@ -175,7 +175,7 @@ if __name__ == "__main__":
 
         st.header("Step 3: Upload results")
         st.info(
-            "Results will appear automatically on [banshee2k.gg](https://banshee2k.gg)."
+            "Results will appear automatically on [banshee2k.com](https://banshee2k.gg)."
         )
 
         payload = lambda: upload(game_type, home_grid, away_grid)
