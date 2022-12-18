@@ -19,13 +19,42 @@ TEAMS = [
 ]
 
 
+def check_password():
+    """Returns `True` if the user had the correct password."""
+
+    def password_entered():
+        """Checks whether a password entered by the user is correct."""
+        if st.session_state["password"] == st.secrets["PASS"]:
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]  # don't store password
+        else:
+            st.session_state["password_correct"] = False
+
+    if "password_correct" not in st.session_state:
+        # First run, show input for password.
+        st.text_input(
+            "Password", type="password", on_change=password_entered, key="password"
+        )
+        return False
+    elif not st.session_state["password_correct"]:
+        # Password not correct, show input + error.
+        st.text_input(
+            "Password", type="password", on_change=password_entered, key="password"
+        )
+        st.error("😕 Password incorrect")
+        return False
+    else:
+        # Password correct.
+        return True
+
+
 def invert(img, name):
     path = f"{name}.png"
     img.save(path)
     return path
 
 
-@st.cache
+@st.cache(allow_output_mutation=True)
 def to_df(img, cols=[]):
     path = invert(img, "temp")
     data = API.process_file(filepath=path, output_format="df")
@@ -75,6 +104,12 @@ def boxscore(img):
     return df
 
 
+def upload(password):
+    if password == st.secrets["PASS"]:
+        st.info("Successfully uploaded game results.")
+    else:
+        st.error("Authentication failed.")
+
 if __name__ == "__main__":
     with open("style.css") as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
@@ -98,7 +133,7 @@ if __name__ == "__main__":
     )
 
     screenshot = st.file_uploader("Choose a boxscore", type=["png", "jpg", "jpeg"])
-    if screenshot:
+    if screenshot and check_password():
         st.write(
             """
             After uploading your boxscore image, edit the tables below to fix
@@ -130,4 +165,9 @@ if __name__ == "__main__":
         away_grid = AgGrid(away_df, editable=True)
 
         st.header("Step 4: Upload results")
-        st.info("Coming soon.")
+
+        game_type = st.radio(
+            "Game type", ["Pre Season", "Regular Season", "Post Season"], index=1
+        )
+
+        st.button("Upload results")
