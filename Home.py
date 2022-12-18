@@ -7,68 +7,41 @@ from ExtractTable import ExtractTable
 from st_aggrid import AgGrid
 
 API = ExtractTable(api_key=st.secrets["API_KEY"])
+TEAMS = [
+    "Purple Haze",
+    "White Walkers",
+    "Midnight Carnival",
+    "Powered Gaming Dragons",
+    "Vamanos Pest",
+    "Denver Defenders",
+    "Mississippi Mudkats",
+    "Seattle buckets",
+]
 
 
 def invert(img, name):
-    colored = np.array(img)
-    colored = cv.cvtColor(colored, cv.COLOR_BGR2GRAY)
-    
-    _, t1 = cv.threshold(colored, 127, 255, cv.THRESH_BINARY_INV)
-    
-    made = Image.fromarray(t1)
     path = f"{name}.png"
-
-    made.save(path)
+    img.save(path)
     return path
-    
-    
-def to_df(img, cols):
+
+
+@st.cache
+def to_df(img, cols=[]):
     path = invert(img, "temp")
     data = API.process_file(filepath=path, output_format="df")
 
     df = data[0]
-    df.columns = cols
-    
+    if cols:
+        df.columns = cols
+
     return df
 
 
-if __name__ == "__main__":
-    with open("style.css") as f:
-        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+def boxscore(img):
+    df = to_df(img)
 
-    st.write(
-        f"""
-        # Welcome! :wave:
-
-        This app tracks season-by-season stats for the [@2kaveragejoes][1]
-        league. The app is open source and maintained by **@The57thPick**.
-
-        [1]: https://discord.gg/2VBR8dQ2gb
-        [2]: https://github.com/jdkato/blood-tigers
-        """
-    )
-
-    st.warning(
-        """
-    ❗Please see the [screenshot guide][1] for information on how to best provide images of game boxscores.
-
-    [1]: https://github.com/jdkato/blood-tigers#data-collection
-    """
-    )
-    
-    et_sess = ExtractTable(api_key=st.secrets["API_KEY"])
-
-    boxscore = st.file_uploader("Choose a boxscore", type=["png", "jpg", "jpeg"])
-    if boxscore:
-        image = Image.open(boxscore)
-        image = image.resize([1200, 1200])
-
-        w, h = image.size
-        
-        away = image.crop((400, h / 4.2, 1070, 1.7 * h / 4))
-        st.image(away)
-        
-        df = to_df(away, [
+    if df.shape[1] == 11:
+        df.columns = [
             "Gamertag",
             "GRD",
             "PTS",
@@ -80,9 +53,83 @@ if __name__ == "__main__":
             "TO",
             "FGM/FGA",
             "3PM/3PA",
-        ])
-        df = df.drop('GRD', axis=1)
-        df['Gamertag'] = df['Gamertag'].str.lstrip("*")
+        ]
+        df = df.drop("GRD", axis=1)
+    elif df.shape[1] == 10:
+        # GRD and PTS combined: `D+ 7``
+        df.columns = [
+            "Gamertag",
+            "PTS",
+            "REB",
+            "AST",
+            "STL",
+            "BLK",
+            "FLS",
+            "TO",
+            "FGM/FGA",
+            "3PM/3PA",
+        ]
+        df["PTS"] = df["PTS"].str.replace(r"[A-D][+-]?", "", regex=True)
 
-        grid = AgGrid(df, editable=True)
-        st.caption("Edit the table above to fix any transcription mistakes.")
+    df["Gamertag"] = df["Gamertag"].str.lstrip("*")
+    return df
+
+
+if __name__ == "__main__":
+    with open("style.css") as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+
+    st.write(
+        f"""
+        # Welcome! :wave:
+
+        This app is designed to expedite the process of converting NBA2K
+        boxscores into queryable data structures, making it ideal for Pro-Am
+        leagues or other stat-tracking websites.
+        """
+    )
+
+    st.warning(
+        """
+    ❗Please see the [screenshot guide][1] for information on how to best provide images of game boxscores.
+
+    [1]: https://github.com/jdkato/blood-tigers#data-collection
+    """
+    )
+
+    screenshot = st.file_uploader("Choose a boxscore", type=["png", "jpg", "jpeg"])
+    if screenshot:
+        st.write(
+            """
+            After uploading your boxscore image, edit the tables below to fix
+            any OCR mistakes.
+            """
+        )
+
+        image = Image.open(screenshot)
+        image = image.resize([1200, 1200])
+
+        w, h = image.size
+
+        st.header("Step 1: Home team")
+
+        home_box = image.crop((400, h / 4.2, 1070, 1.7 * h / 4))
+        home = st.selectbox("Assign team", TEAMS, key=1)
+        st.image(home_box, use_column_width=True)
+
+        home_df = boxscore(home_box)
+        home_grid = AgGrid(home_df, editable=True)
+
+        st.header("Step 2: Away team")
+
+        away_box = image.crop((400, h / 1.9, 1070, 2.9 * h / 4))
+        away = st.selectbox("Assign team", TEAMS, key=2)
+        st.image(away_box, use_column_width=True)
+
+        away_df = boxscore(away_box)
+        away_grid = AgGrid(away_df, editable=True)
+
+        st.header("Step 3: Game summary")
+
+        st.header("Step 4: Upload results")
+        st.info("Coming soon.")

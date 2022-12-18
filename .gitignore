@@ -5,7 +5,7 @@ __pycache__/
 
 .idea
 .streamlit/secrets.toml
-out.png
+temp.png
 
 # C extensions
 *.so
