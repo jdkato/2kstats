@@ -129,7 +129,5 @@ if __name__ == "__main__":
         away_df = boxscore(away_box)
         away_grid = AgGrid(away_df, editable=True)
 
-        st.header("Step 3: Game summary")
-
         st.header("Step 4: Upload results")
         st.info("Coming soon.")
