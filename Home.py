@@ -137,7 +137,7 @@ if __name__ == "__main__":
     game_type = col1.radio(
         "Game type", ["Pre Season", "Regular Season", "Post Season"], index=1
     )
-    season = col2.number_input('Season', 1, 10)
+    season = col2.number_input("Season", 1, 10)
 
     screenshot = st.file_uploader("Choose a boxscore", type=["png", "jpg", "jpeg"])
     if screenshot and check_password():
@@ -174,7 +174,9 @@ if __name__ == "__main__":
             away_grid = AgGrid(away_df, editable=True)
 
         st.header("Step 3: Upload results")
-        st.info("Results will appear automatically on [banshee2k.gg](https://banshee2k.gg).")
+        st.info(
+            "Results will appear automatically on [banshee2k.gg](https://banshee2k.gg)."
+        )
 
         payload = lambda: upload(game_type, home_grid, away_grid)
         st.button("Upload results", on_click=payload)
