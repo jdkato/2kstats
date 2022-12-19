@@ -161,24 +161,23 @@ if __name__ == "__main__":
         w, h = image.size
 
         st.header("Step 2: Verify results")
-
-        tab1, tab2 = st.tabs(["Home", "Away"])
+        st.subheader("Home")
 
         home_box = image.crop((400, h / 4.2, 1070, 1.7 * h / 4))
-        home = tab1.selectbox("Assign team", TEAMS, key=1)
-        tab1.image(home_box, use_column_width=True)
+        home = st.selectbox("Assign team", TEAMS, key=1)
+        st.image(home_box, use_column_width=True)
 
         home_df = boxscore(home_box)
-        with tab1:
-            home_grid = AgGrid(home_df, editable=True)
+        home_grid = AgGrid(home_df, editable=True)
+
+        st.subheader("Away")
 
         away_box = image.crop((400, h / 1.9, 1070, 2.9 * h / 4))
-        away = tab2.selectbox("Assign team", TEAMS, key=2)
-        tab2.image(away_box, use_column_width=True)
+        away = st.selectbox("Assign team", TEAMS, key=2)
+        st.image(away_box, use_column_width=True)
 
         away_df = boxscore(away_box)
-        with tab2:
-            away_grid = AgGrid(away_df, editable=True)
+        away_grid = AgGrid(away_df, editable=True)
 
         st.header("Step 3: Upload results")
         st.info(
