@@ -49,8 +49,15 @@ def check_password():
 
 
 def invert(img, name):
+    colored = np.array(img)
+    colored = cv.cvtColor(colored, cv.COLOR_BGR2GRAY)
+
+    _, t1 = cv.threshold(colored, 127, 255, cv.THRESH_BINARY_INV)
+
+    made = Image.fromarray(t1)
     path = f"{name}.png"
-    img.save(path)
+
+    made.save(path)
     return path
 
 
