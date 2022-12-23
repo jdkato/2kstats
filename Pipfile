@@ -10,9 +10,10 @@ altair = "*"
 numpy = "*"
 streamlit-aggrid = "*"
 extracttable = "*"
-sqlalchemy = "*"
 pillow = "*"
 opencv-python-headless = "*"
+records = "*"
+psycopg2-binary = "*"
 
 [dev-packages]
 pytest = "*"

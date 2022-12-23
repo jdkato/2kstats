@@ -1,3 +1,5 @@
+import records
+
 import streamlit as st
 import cv2 as cv
 import numpy as np
@@ -111,8 +113,60 @@ def boxscore(img):
     return df
 
 
-def upload(game_type, home, away):
-    pass
+def upload(event, game, db):
+    # df = home_grid['data']
+
+    event_id = (
+        db.query(
+            """
+        SELECT id FROM event WHERE name=:name
+        """,
+            name=event,
+        )
+        .first()
+        .as_dict()
+    )
+
+    home_id = (
+        db.query(
+            """
+        SELECT id FROM team WHERE name=:name
+        """,
+            name=game["home"]["team"],
+        )
+        .first()
+        .as_dict()
+    )
+
+    away_id = (
+        db.query(
+            """
+        SELECT id FROM team WHERE name=:name
+        """,
+            name=game["away"]["team"],
+        )
+        .first()
+        .as_dict()
+    )
+
+    tx = db.transaction()
+
+    db.query(
+        """
+        INSERT INTO game(date, stream, home, away, event)
+        VALUES (:date, :stream, :home, :away, :event)
+        RETURNING id;
+    """,
+        date=game["date"],
+        stream=game["stream"],
+        home=home_id,
+        away=away_id,
+        event=event_id,
+    )
+
+    # core, and stats
+
+    tx.commit()
 
 
 if __name__ == "__main__":
@@ -138,13 +192,6 @@ if __name__ == "__main__":
     st.code(API.check_usage())
 
     st.header("Step 1: Upload a screenshot")
-
-    col1, col2 = st.columns(2)
-
-    game_type = col1.radio(
-        "Game type", ["Pre Season", "Regular Season", "Post Season"], index=1
-    )
-    season = col2.number_input("Season", 1, 10)
 
     screenshot = st.file_uploader("Choose a boxscore", type=["png", "jpg", "jpeg"])
     if screenshot and check_password():
@@ -181,8 +228,30 @@ if __name__ == "__main__":
 
         st.header("Step 3: Upload results")
         st.info(
-            "Results will appear automatically on [banshee2k.com](https://banshee2k.gg)."
+            "Results will appear automatically on [banshee2k.com](https://banshee2k.com)."
         )
 
-        payload = lambda: upload(game_type, home_grid, away_grid)
+        db = records.Database(st.secrets["DATABASE_URL"])
+
+        events = db.query("SELECT name FROM event").as_dict()
+
+        event = st.selectbox("Choose an event", [e["name"] for e in events])
+        game = {
+            "home": {"boxscore": home_grid, "team": home},
+            "away": {"boxscore": away_grid, "away": away},
+        }
+
+        col1, col2 = st.columns(2)
+
+        date = col1.date_input("Date of game")
+        url = col2.text_input("Stream URL")
+
+        game = {
+            "home": {"boxscore": home_grid, "team": home},
+            "away": {"boxscore": away_grid, "team": away},
+            "date": date,
+            "stream": url,
+        }
+
+        payload = lambda: upload(event, game, db)
         st.button("Upload results", on_click=payload)
