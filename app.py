@@ -3,21 +3,23 @@ import records
 import streamlit as st
 import cv2 as cv
 import numpy as np
+import pandas as pd
 
 from PIL import Image
 from ExtractTable import ExtractTable
 from st_aggrid import AgGrid
 
 API = ExtractTable(api_key=st.secrets["API_KEY"])
+DB = records.Database(st.secrets["DATABASE_URL"])
 TEAMS = [
-    "Purple Haze",
-    "White Walkers",
-    "Midnight Carnival",
-    "Powered Gaming Dragons",
-    "Vamanos Pest",
-    "Denver Defenders",
-    "Mississippi Mudkats",
-    "Seattle buckets",
+    "Bad Boys",
+    "Brick Bros",
+    "Hector's Code",
+    "Overpowered",
+    "Secret Service",
+    "Silver Swishers",
+    "Splash Dynasty",
+    "The Diddlers",
 ]
 
 
@@ -113,11 +115,11 @@ def boxscore(img):
     return df
 
 
-def upload(event, game, db):
+def upload(event, game):
     # df = home_grid['data']
 
     event_id = (
-        db.query(
+        DB.query(
             """
         SELECT id FROM event WHERE name=:name
         """,
@@ -128,7 +130,7 @@ def upload(event, game, db):
     )
 
     home_id = (
-        db.query(
+        DB.query(
             """
         SELECT id FROM team WHERE name=:name
         """,
@@ -139,7 +141,7 @@ def upload(event, game, db):
     )
 
     away_id = (
-        db.query(
+        DB.query(
             """
         SELECT id FROM team WHERE name=:name
         """,
@@ -149,9 +151,9 @@ def upload(event, game, db):
         .as_dict()
     )
 
-    tx = db.transaction()
+    tx = DB.transaction()
 
-    db.query(
+    DB.query(
         """
         INSERT INTO game(date, stream, home, away, event)
         VALUES (:date, :stream, :home, :away, :event)
@@ -173,20 +175,24 @@ if __name__ == "__main__":
     with open("style.css") as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
+    st.header("Welcome! :wave:")
+
     st.warning(
         """
-    ❗Please see the [screenshot guide][1] for information on how to best provide images of game boxscores.
+        ❗Please see the [screenshot guide][1] for information on how to best
+        provide images of game boxscores.
 
-    [1]: https://github.com/jdkato/blood-tigers#data-collection
-    """
+        [1]: https://github.com/jdkato/blood-tigers#data-collection
+        """
     )
 
-    st.header("Welcome! :wave:")
     st.write(
         """
-        This app is designed to expedite the process of converting NBA2K
-        boxscores into queryable data structures, making it ideal for Pro-Am
-        leagues or other stat-tracking websites.
+        This app is designed to expedite the process of converting NBA 2K
+        boxscores into queryable data structures for use in the [Banshee 2K
+        league website][1].
+
+        [1]: https://banshee2k.com
         """
     )
     st.code(API.check_usage())
@@ -194,11 +200,11 @@ if __name__ == "__main__":
     st.header("Step 1: Upload a screenshot")
 
     screenshot = st.file_uploader("Choose a boxscore", type=["png", "jpg", "jpeg"])
-    if screenshot and check_password():
+    if screenshot:
         st.write(
             """
-            After uploading your boxscore image, edit the tables below to fix
-            any OCR mistakes.
+            After uploading your boxscore image, please edit the tables below
+            to fix any OCR mistakes.
             """
         )
 
@@ -208,30 +214,46 @@ if __name__ == "__main__":
         w, h = image.size
 
         st.header("Step 2: Verify results")
-        st.subheader("Home")
 
-        home_box = image.crop((400, h / 4.2, 1070, 1.7 * h / 4))
-        home = st.selectbox("Assign team", TEAMS, key=1)
-        st.image(home_box, use_column_width=True)
+        st.subheader("Game Information")
 
-        home_df = boxscore(home_box)
-        home_grid = AgGrid(home_df, editable=True)
+        game_date = st.date_input("Date")
+        game_stream = st.text_input("Stream URL")
 
-        st.subheader("Away")
+        st.subheader("Away Stats")
 
-        away_box = image.crop((400, h / 1.9, 1070, 2.9 * h / 4))
-        away = st.selectbox("Assign team", TEAMS, key=2)
+        away_box = image.crop((400, h / 4.2, 1070, 1.7 * h / 4))
+        away = st.selectbox("Assign team", TEAMS, key=1)
         st.image(away_box, use_column_width=True)
 
         away_df = boxscore(away_box)
         away_grid = AgGrid(away_df, editable=True)
 
+        st.subheader("Home Stats")
+
+        home_box = image.crop((400, h / 1.9, 1070, 2.9 * h / 4))
+        home = st.selectbox("Assign team", TEAMS, key=2)
+        st.image(home_box, use_column_width=True)
+
+        home_df = boxscore(home_box)
+        home_grid = AgGrid(home_df, editable=True)
+
+        st.subheader("Score Breakdown")
+
+        score = {
+            "Team": [away, home],
+            "1st": [0, 0],
+            "2nd": [0, 0],
+            "3rd": [0, 0],
+            "4th": [0, 0],
+            "Final": [0, 0],
+        }
+        score_grid = AgGrid(pd.DataFrame(score), editable=True)
+
         st.header("Step 3: Upload results")
         st.info(
             "Results will appear automatically on [banshee2k.com](https://banshee2k.com)."
         )
-
-        db = records.Database(st.secrets["DATABASE_URL"])
 
         events = db.query("SELECT name FROM event").as_dict()
 
@@ -239,6 +261,7 @@ if __name__ == "__main__":
         game = {
             "home": {"boxscore": home_grid, "team": home},
             "away": {"boxscore": away_grid, "away": away},
+            "score": score_grid,
         }
 
         col1, col2 = st.columns(2)
@@ -253,5 +276,5 @@ if __name__ == "__main__":
             "stream": url,
         }
 
-        payload = lambda: upload(event, game, db)
+        payload = lambda: upload(event, game)
         st.button("Upload results", on_click=payload)
