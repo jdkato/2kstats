@@ -222,20 +222,24 @@ if __name__ == "__main__":
 
         st.subheader("Away Stats")
 
-        away_box = image.crop((400, h / 4.2, 1070, 1.7 * h / 4))
+        away_box = image.crop((430, h / 5.0, 1070, 1.7 * h / 4))
         away = st.selectbox("Assign team", TEAMS, key=1)
         st.image(away_box, use_column_width=True)
 
         away_df = boxscore(away_box)
+        # Remove first row
+        away_df = away_df.iloc[1:]
         away_grid = AgGrid(away_df, editable=True)
 
         st.subheader("Home Stats")
 
-        home_box = image.crop((400, h / 1.9, 1070, 2.9 * h / 4))
+        home_box = image.crop((430, h / 2.05, 1070, 2.9 * h / 4))
         home = st.selectbox("Assign team", TEAMS, key=2)
         st.image(home_box, use_column_width=True)
 
         home_df = boxscore(home_box)
+        # Remove first row
+        home_df = home_df.iloc[1:]
         home_grid = AgGrid(home_df, editable=True)
 
         st.subheader("Score Breakdown")
