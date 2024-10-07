@@ -114,7 +114,7 @@ def boxscore(img):
     return df
 
 
-def upload(event, game):
+def upload(game, event):
     # df = home_grid['data']
 
     event_id = (
@@ -202,24 +202,12 @@ if __name__ == "__main__":
 
     screenshot = st.file_uploader("Choose a boxscore", type=["png", "jpg", "jpeg"])
     if screenshot and check_password():
-        st.write(
-            """
-            After uploading your boxscore image, please edit the tables below
-            to fix any OCR mistakes.
-            """
-        )
-
         image = Image.open(screenshot)
         image = image.resize([1200, 1200])
 
         w, h = image.size
 
         st.header("Step 2: Verify results")
-
-        st.subheader("Game Information")
-
-        game_date = st.date_input("Date")
-        game_stream = st.text_input("Stream URL")
 
         st.subheader("Away Stats")
 
@@ -263,29 +251,34 @@ if __name__ == "__main__":
 
         st.header("Step 3: Upload results")
         st.info(
-            "Results will appear automatically on [banshee2k.com](https://banshee2k.com)."
+            """
+            [banshee2k.com](https://banshee2k.com) will update automatically
+            within a few minutes of uploading.
+            """
         )
 
-        events = db.query("SELECT name FROM event").as_dict()
+        events = DB.query("SELECT name FROM event").as_dict()
+        events = [e["name"] for e in events]
 
-        event = st.selectbox("Choose an event", [e["name"] for e in events])
+        event = st.selectbox("Choose an event", reversed(events))
+
+        col1, col2 = st.columns(2)
+
+        game_date = col1.date_input("Date of game")
+        game_stream = col2.text_input("Stream URL")
+
         game = {
             "home": {"boxscore": home_grid, "team": home},
             "away": {"boxscore": away_grid, "away": away},
             "score": score_grid,
         }
 
-        col1, col2 = st.columns(2)
-
-        date = col1.date_input("Date of game")
-        url = col2.text_input("Stream URL")
-
         game = {
             "home": {"boxscore": home_grid, "team": home},
             "away": {"boxscore": away_grid, "team": away},
-            "date": date,
-            "stream": url,
+            "date": game_date,
+            "stream": game_stream,
         }
 
-        payload = lambda: upload(event, game)
+        payload = lambda: upload(game, event)
         st.button("Upload results", on_click=payload)
