@@ -7,7 +7,6 @@ import pandas as pd
 
 from PIL import Image
 from ExtractTable import ExtractTable
-from st_aggrid import AgGrid
 
 API = ExtractTable(api_key=st.secrets["API_KEY"])
 DB = records.Database(st.secrets["DATABASE_URL"])
@@ -172,6 +171,8 @@ def upload(event, game):
 
 
 if __name__ == "__main__":
+    # st.set_page_config(layout="wide")
+
     with open("style.css") as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
@@ -229,7 +230,7 @@ if __name__ == "__main__":
         away_df = boxscore(away_box)
         # Remove first row
         away_df = away_df.iloc[1:]
-        away_grid = AgGrid(away_df, editable=True)
+        away_grid = st.data_editor(away_df, use_container_width=True, hide_index=True)
 
         st.subheader("Home Stats")
 
@@ -240,7 +241,7 @@ if __name__ == "__main__":
         home_df = boxscore(home_box)
         # Remove first row
         home_df = home_df.iloc[1:]
-        home_grid = AgGrid(home_df, editable=True)
+        home_grid = st.data_editor(home_df, use_container_width=True, hide_index=True)
 
         st.subheader("Score Breakdown")
 
@@ -253,9 +254,12 @@ if __name__ == "__main__":
             "Final": [0, 0],
         }
 
-        score_box = image.crop((400, h / 1.5, 1070, 3.5 * h / 4))
+        score_box = image.crop((130, h / 2.9, 330, 2.35 * h / 4))
         st.image(score_box, use_column_width=False)
-        score_grid = AgGrid(pd.DataFrame(score), editable=True)
+
+        score_grid = st.data_editor(
+            pd.DataFrame(score), use_container_width=True, hide_index=True
+        )
 
         st.header("Step 3: Upload results")
         st.info(

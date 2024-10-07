@@ -1,3 +1,7 @@
 button[title="View fullscreen"] {
-    display: none;
+  display: none;
+}
+
+body {
+  overflow-y: hidden !important;
 }
