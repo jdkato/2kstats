@@ -64,7 +64,7 @@ def invert(img, name):
     return path
 
 
-@st.cache(allow_output_mutation=True)
+@st.cache_data
 def to_df(img, cols=[]):
     path = invert(img, "temp")
     data = API.process_file(filepath=path, output_format="df")
