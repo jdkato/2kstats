@@ -200,7 +200,7 @@ if __name__ == "__main__":
     st.header("Step 1: Upload a screenshot")
 
     screenshot = st.file_uploader("Choose a boxscore", type=["png", "jpg", "jpeg"])
-    if screenshot:
+    if screenshot and check_password():
         st.write(
             """
             After uploading your boxscore image, please edit the tables below
@@ -248,6 +248,9 @@ if __name__ == "__main__":
             "4th": [0, 0],
             "Final": [0, 0],
         }
+
+        score_box = image.crop((400, h / 1.5, 1070, 3.5 * h / 4))
+        st.image(score_box, use_column_width=False)
         score_grid = AgGrid(pd.DataFrame(score), editable=True)
 
         st.header("Step 3: Upload results")
