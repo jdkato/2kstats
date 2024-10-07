@@ -180,7 +180,7 @@ if __name__ == "__main__":
 
     st.warning(
         """
-        ❗Please see the [screenshot guide][1] for information on how to best
+        :exclamation: Please see the [screenshot guide][1] for information on how to best
         provide images of game boxscores.
 
         [1]: https://github.com/jdkato/blood-tigers#data-collection
@@ -252,8 +252,8 @@ if __name__ == "__main__":
         st.header("Step 3: Upload results")
         st.info(
             """
-            [banshee2k.com](https://banshee2k.com) will update automatically
-            within a few minutes of uploading.
+            :exclamation: [banshee2k.com](https://banshee2k.com) will update
+            automatically within a few minutes of uploading.
             """
         )
 
