@@ -1,3 +1,5 @@
+import difflib
+
 import records
 
 import streamlit as st
@@ -18,7 +20,7 @@ DB = records.Database(st.secrets["DATABASE_URL"])
 TEAMS = [
     "Bad Boys",
     "Brick Bros",
-    "Hector's Code",
+    "Hectors Code",
     "Overpowered",
     "Secret Service",
     "Silver Swishers",
@@ -134,7 +136,10 @@ def check_data(df):
 
     for gamertag in df["Gamertag"]:
         if gamertag not in gamertags:
-            st.warning(f"Gamertag '{gamertag}' not found in database.")
+            close = difflib.get_close_matches(gamertag, gamertags)
+            st.warning(
+                f"Gamertag '{gamertag}' not found in database; did you mean one of these? {close}"
+            )
 
     # Check that fractional columns are in the correct format:
     for name in ["FGM/FGA", "3PM/3PA", "FTM/FTA"]:
@@ -146,6 +151,11 @@ def check_data(df):
                 st.error(f"Column '{name}' must be digits; got '{value}'.")
             if int(x) > int(y):
                 st.error(f"Column '{name}' must be X > Y; got '{value}'.")
+
+    # Check for strings with length zero
+    for col in df.columns:
+        if df[col].str.len().eq(0).any():
+            st.error(f"Column '{col}' contains empty strings.")
 
 
 def upload(game, event):
