@@ -185,51 +185,53 @@ def upload(game, event):
         .as_dict()
     )
 
-    tx = DB.transaction()
-
-    game_id = DB.query(
-        """
+    game_id = (
+        DB.query(
+            """
         INSERT INTO game(date, stream, home, away, event)
         VALUES (:date, :stream, :home, :away, :event)
         RETURNING id;
     """,
-        date=game["date"].strftime("%Y-%m-%d"),
-        stream=game["stream"],
-        home=home_id,
-        away=away_id,
-        event=event_id,
+            date=game["date"].strftime("%Y-%m-%d"),
+            stream=game["stream"],
+            home=home_id["id"],
+            away=away_id["id"],
+            event=event_id["id"],
+        )
+        .first()
+        .as_dict()
     )
 
     # away team score
     DB.query(
         """
-        INSERT INTO score(team, game, 1st, 2nd, 3rd, 4th, won)
+        INSERT INTO score(team, game, \"1st\", \"2nd\", \"3rd\", \"4th\", won)
         VALUES (:team, :game, :first, :second, :third, :fourth, :won)
         RETURNING id;
     """,
-        team=away_id,
-        game=game_id,
-        first=game["score"]["1st"][0],
-        second=game["score"]["2nd"][0],
-        third=game["score"]["3rd"][0],
-        fourth=game["score"]["4th"][0],
-        won=game["score"]["Final"][0] > game["score"]["Final"][1],
+        team=away_id["id"],
+        game=game_id["id"],
+        first=int(game["score"]["1st"][0]),
+        second=int(game["score"]["2nd"][0]),
+        third=int(game["score"]["3rd"][0]),
+        fourth=int(game["score"]["4th"][0]),
+        won=bool(game["score"]["Final"][0] > game["score"]["Final"][1]),
     )
 
     # home team score
     DB.query(
         """
-        INSERT INTO score(team, game, 1st, 2nd, 3rd, 4th, won)
+        INSERT INTO score(team, game, \"1st\", \"2nd\", \"3rd\", \"4th\", won)
         VALUES (:team, :game, :first, :second, :third, :fourth, :won)
         RETURNING id;
     """,
-        team=home_id,
-        game=game_id,
-        first=game["score"]["1st"][1],
-        second=game["score"]["2nd"][1],
-        third=game["score"]["3rd"][1],
-        fourth=game["score"]["4th"][1],
-        won=game["score"]["Final"][1] > game["score"]["Final"][0],
+        team=home_id["id"],
+        game=game_id["id"],
+        first=int(game["score"]["1st"][1]),
+        second=int(game["score"]["2nd"][1]),
+        third=int(game["score"]["3rd"][1]),
+        fourth=int(game["score"]["4th"][1]),
+        won=bool(game["score"]["Final"][1] > game["score"]["Final"][0]),
     )
 
     # player stats
@@ -263,22 +265,22 @@ def upload(game, event):
             VALUES (:game, :player, :pts, :reb, :ast, :stl, :blk, :fls, :tos, :fgm, :fga, :tpm, :tpa)
             RETURNING id;
         """,
-            game=game_id,
-            player=player_id,
-            pts=player["PTS"],
-            reb=player["REB"],
-            ast=player["AST"],
-            stl=player["STL"],
-            blk=player["BLK"],
-            fls=player["FLS"],
-            tos=player["TO"],
-            fgm=player["FGM/FGA"].split("/")[0],
-            fga=player["FGM/FGA"].split("/")[1],
-            tpm=player["3PM/3PA"].split("/")[0],
-            tpa=player["3PM/3PA"].split("/")[1],
+            game=game_id["id"],
+            player=player_id["id"],
+            pts=int(player["PTS"]),
+            reb=int(player["REB"]),
+            ast=int(player["AST"]),
+            stl=int(player["STL"]),
+            blk=int(player["BLK"]),
+            fls=int(player["FLS"]),
+            tos=int(player["TO"]),
+            fgm=int(player["FGM/FGA"].split("/")[0]),
+            fga=int(player["FGM/FGA"].split("/")[1]),
+            tpm=int(player["3PM/3PA"].split("/")[0]),
+            tpa=int(player["3PM/3PA"].split("/")[1]),
         )
 
-    tx.commit()
+    st.success("Results uploaded successfully!")
 
 
 if __name__ == "__main__":
@@ -376,6 +378,14 @@ if __name__ == "__main__":
             on_change=None,
         )
 
+        invalid = False
+        if home == away:
+            st.error("Home and away teams cannot be the same.", icon="🤔")
+            invalid = True
+        elif score_grid["Final"][0] == score_grid["Final"][1]:
+            st.error("Final scores cannot be the same.", icon="🤔")
+            invalid = True
+
         st.header("Step 3: Upload results")
         st.info(
             """
@@ -401,14 +411,6 @@ if __name__ == "__main__":
             "date": game_date,
             "stream": game_stream,
         }
-
-        invalid = False
-        if home == away:
-            st.error("Home and away teams cannot be the same.", icon="🤔")
-            invalid = True
-        elif score_grid["Final"][0] == score_grid["Final"][1]:
-            st.error("Final scores cannot be the same.", icon="🤔")
-            invalid = True
 
         st.button(
             "Upload results",
