@@ -148,15 +148,7 @@ def check_data(df):
 
 
 def upload(game, event):
-    """
-    game = {
-            "home": {"boxscore": home_grid, "team": home},
-            "away": {"boxscore": away_grid, "team": away},
-            "score": score_grid,
-            "date": game_date,
-            "stream": game_stream,
-        }
-    """
+    """Uploads the game data to the database."""
     conn = DB.get_connection()
     tx = conn.transaction()
 
@@ -211,8 +203,6 @@ def upload(game, event):
             .as_dict()
         )
 
-        print("MADE GAME, ID:", game_id)
-
         # away team score
         conn.query(
             """
@@ -259,6 +249,7 @@ def upload(game, event):
             gamertags.append(player["Gamertag"])
 
         for gamertag in gamertags:
+            print(gamertag)
             player_id = (
                 DB.query(
                     """
@@ -270,10 +261,33 @@ def upload(game, event):
                 .as_dict()
             )
 
+            conn.query(
+                """
+                INSERT INTO stats(game, player, pts, reb, ast, stl, blk, fls, to, fgm, fga, \"3pm\", \"3pa\")
+                VALUES (:game, :player, :pts, :reb, :ast, :stl, :blk, :fls, :tos, :fgm, :fga, :tpm, :tpa)
+                RETURNING id;
+            """,
+                game=game_id["id"],
+                player=player_id["id"],
+                pts=int(player["PTS"]),
+                reb=int(player["REB"]),
+                ast=int(player["AST"]),
+                stl=int(player["STL"]),
+                blk=int(player["BLK"]),
+                fls=int(player["FLS"]),
+                tos=int(player["TO"]),
+                fgm=int(player["FGM/FGA"].split("/")[0]),
+                fga=int(player["FGM/FGA"].split("/")[1]),
+                tpm=int(player["3PM/3PA"].split("/")[0]),
+                tpa=int(player["3PM/3PA"].split("/")[1]),
+            )
+
         tx.commit()
+        st.session_state.form_valid = True
         return True
     except Exception as e:
         print(e)
+        st.session_state.form_valid = False
         tx.rollback()
         return False
     finally:
@@ -282,6 +296,9 @@ def upload(game, event):
 
 if __name__ == "__main__":
     # st.set_page_config(layout="wide")
+
+    if "form_valid" not in st.session_state:
+        st.session_state.form_valid = False
 
     with open("style.css") as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
@@ -332,8 +349,8 @@ if __name__ == "__main__":
         away_grid = st.data_editor(
             away_df,
             use_container_width=True,
-            hide_index=True,
             on_change=st.rerun,
+            num_rows="dynamic",
         )
 
         check_data(away_grid)
@@ -349,7 +366,10 @@ if __name__ == "__main__":
         home_df = home_df.iloc[1:]
 
         home_grid = st.data_editor(
-            home_df, use_container_width=True, hide_index=True, on_change=st.rerun
+            home_df,
+            use_container_width=True,
+            on_change=st.rerun,
+            num_rows="dynamic",
         )
 
         check_data(home_grid)
@@ -404,9 +424,16 @@ if __name__ == "__main__":
             "stream": game_stream,
         }
 
-        st.button(
+        pressed = st.button(
             "Upload results",
             on_click=upload,
             args=(game, event),
             disabled=invalid,
         )
+
+        if pressed and st.session_state.form_valid:
+            st.success("Data uploaded successfully! 🎉")
+        elif pressed and st.session_state.form_valid is False:
+            st.error("Data upload failed. 😔")
+        else:
+            st.text("Press the button to upload the data.")
