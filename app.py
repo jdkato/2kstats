@@ -143,8 +143,15 @@ def check_data(df):
 
 
 def upload(game, event):
-    # df = home_grid['data']
-
+    """
+    game = {
+            "home": {"boxscore": home_grid, "team": home},
+            "away": {"boxscore": away_grid, "team": away},
+            "score": score_grid,
+            "date": game_date,
+            "stream": game_stream,
+        }
+    """
     event_id = (
         DB.query(
             """
@@ -180,20 +187,96 @@ def upload(game, event):
 
     tx = DB.transaction()
 
-    DB.query(
+    game_id = DB.query(
         """
         INSERT INTO game(date, stream, home, away, event)
         VALUES (:date, :stream, :home, :away, :event)
         RETURNING id;
     """,
-        date=game["date"],
+        date=game["date"].strftime("%Y-%m-%d"),
         stream=game["stream"],
         home=home_id,
         away=away_id,
         event=event_id,
     )
 
-    # core, and stats
+    # away team score
+    DB.query(
+        """
+        INSERT INTO score(team, game, 1st, 2nd, 3rd, 4th, won)
+        VALUES (:team, :game, :first, :second, :third, :fourth, :won)
+        RETURNING id;
+    """,
+        team=away_id,
+        game=game_id,
+        first=game["score"]["1st"][0],
+        second=game["score"]["2nd"][0],
+        third=game["score"]["3rd"][0],
+        fourth=game["score"]["4th"][0],
+        won=game["score"]["Final"][0] > game["score"]["Final"][1],
+    )
+
+    # home team score
+    DB.query(
+        """
+        INSERT INTO score(team, game, 1st, 2nd, 3rd, 4th, won)
+        VALUES (:team, :game, :first, :second, :third, :fourth, :won)
+        RETURNING id;
+    """,
+        team=home_id,
+        game=game_id,
+        first=game["score"]["1st"][1],
+        second=game["score"]["2nd"][1],
+        third=game["score"]["3rd"][1],
+        fourth=game["score"]["4th"][1],
+        won=game["score"]["Final"][1] > game["score"]["Final"][0],
+    )
+
+    # player stats
+    away_stats = game["away"]["boxscore"]
+    home_stats = game["home"]["boxscore"]
+
+    gamertags = []
+    for i in range(home_stats.shape[0]):
+        player = home_stats.iloc[i]
+        gamertags.append(player["Gamertag"])
+
+    for i in range(away_stats.shape[0]):
+        player = away_stats.iloc[i]
+        gamertags.append(player["Gamertag"])
+
+    for gamertag in gamertags:
+        player_id = (
+            DB.query(
+                """
+            SELECT id FROM player WHERE name=:name
+            """,
+                name=gamertag,
+            )
+            .first()
+            .as_dict()
+        )
+
+        DB.query(
+            """
+            INSERT INTO stats(game, player, pts, reb, ast, stl, blk, fls, to, fgm, fga, 3pm, 3pa)
+            VALUES (:game, :player, :pts, :reb, :ast, :stl, :blk, :fls, :tos, :fgm, :fga, :tpm, :tpa)
+            RETURNING id;
+        """,
+            game=game_id,
+            player=player_id,
+            pts=player["PTS"],
+            reb=player["REB"],
+            ast=player["AST"],
+            stl=player["STL"],
+            blk=player["BLK"],
+            fls=player["FLS"],
+            tos=player["TO"],
+            fgm=player["FGM/FGA"].split("/")[0],
+            fga=player["FGM/FGA"].split("/")[1],
+            tpm=player["3PM/3PA"].split("/")[0],
+            tpa=player["3PM/3PA"].split("/")[1],
+        )
 
     tx.commit()
 
@@ -287,7 +370,10 @@ if __name__ == "__main__":
         st.image(score_box, use_column_width=False)
 
         score_grid = st.data_editor(
-            pd.DataFrame(score), use_container_width=True, hide_index=True
+            pd.DataFrame(score),
+            use_container_width=True,
+            hide_index=True,
+            on_change=None,
         )
 
         st.header("Step 3: Upload results")
@@ -310,16 +396,23 @@ if __name__ == "__main__":
 
         game = {
             "home": {"boxscore": home_grid, "team": home},
-            "away": {"boxscore": away_grid, "away": away},
-            "score": score_grid,
-        }
-
-        game = {
-            "home": {"boxscore": home_grid, "team": home},
             "away": {"boxscore": away_grid, "team": away},
+            "score": score_grid,
             "date": game_date,
             "stream": game_stream,
         }
 
-        payload = lambda: upload(game, event)
-        st.button("Upload results", on_click=payload)
+        invalid = False
+        if home == away:
+            st.error("Home and away teams cannot be the same.", icon="🤔")
+            invalid = True
+        elif score_grid["Final"][0] == score_grid["Final"][1]:
+            st.error("Final scores cannot be the same.", icon="🤔")
+            invalid = True
+
+        st.button(
+            "Upload results",
+            on_click=upload,
+            args=(game, event),
+            disabled=invalid,
+        )
