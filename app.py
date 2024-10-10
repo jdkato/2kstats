@@ -79,7 +79,7 @@ def to_df(img, cols=[]):
 def boxscore(img):
     df = to_df(img)
 
-    if df.shape[1] == 11:
+    if df.shape[1] == 12:
         df.columns = [
             "Gamertag",
             "GRD",
@@ -92,6 +92,7 @@ def boxscore(img):
             "TO",
             "FGM/FGA",
             "3PM/3PA",
+            "FTM/FTA",
         ]
         df = df.drop("GRD", axis=1)
     elif df.shape[1] == 10:
@@ -107,10 +108,10 @@ def boxscore(img):
             "TO",
             "FGM/FGA",
             "3PM/3PA",
+            "FTM/FTA",
         ]
         df["PTS"] = df["PTS"].str.replace(r"[A-D][+-]?", "", regex=True)
 
-    df["Gamertag"] = df["Gamertag"].str.lstrip("*")
     return df
 
 
@@ -211,7 +212,7 @@ if __name__ == "__main__":
 
         st.subheader("Away Stats")
 
-        away_box = image.crop((430, h / 5.0, 1070, 1.7 * h / 4))
+        away_box = image.crop((400, h / 5.0, 1100, 1.7 * h / 4))
         away = st.selectbox("Assign team", TEAMS, key=1)
         st.image(away_box, use_column_width=True)
 
@@ -222,7 +223,7 @@ if __name__ == "__main__":
 
         st.subheader("Home Stats")
 
-        home_box = image.crop((430, h / 2.05, 1070, 2.9 * h / 4))
+        home_box = image.crop((400, h / 2.05, 1100, 2.9 * h / 4))
         home = st.selectbox("Assign team", TEAMS, key=2)
         st.image(home_box, use_column_width=True)
 
@@ -242,7 +243,7 @@ if __name__ == "__main__":
             "Final": [0, 0],
         }
 
-        score_box = image.crop((130, h / 2.9, 330, 2.35 * h / 4))
+        score_box = image.crop((85, h / 2.9, 330, 2.35 * h / 4))
         st.image(score_box, use_column_width=False)
 
         score_grid = st.data_editor(
