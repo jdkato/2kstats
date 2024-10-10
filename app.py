@@ -195,14 +195,14 @@ def upload(game, event):
         )
 
         game_id = (
-            DB.query(
+            conn.query(
                 """
             INSERT INTO game(date, stream, home, away, event)
             VALUES (:date, :stream, :home, :away, :event)
             RETURNING id;
         """,
                 date=game["date"].strftime("%Y-%m-%d"),
-                stream=game["stream"],
+                stream=game["stream"] or None,
                 home=home_id["id"],
                 away=away_id["id"],
                 event=event_id["id"],
@@ -211,10 +211,10 @@ def upload(game, event):
             .as_dict()
         )
 
-        tx.commit()
+        print("MADE GAME, ID:", game_id)
 
         # away team score
-        DB.query(
+        conn.query(
             """
             INSERT INTO score(team, game, \"1st\", \"2nd\", \"3rd\", \"4th\", won)
             VALUES (:team, :game, :first, :second, :third, :fourth, :won)
@@ -230,7 +230,7 @@ def upload(game, event):
         )
 
         # home team score
-        DB.query(
+        conn.query(
             """
             INSERT INTO score(team, game, \"1st\", \"2nd\", \"3rd\", \"4th\", won)
             VALUES (:team, :game, :first, :second, :third, :fourth, :won)
@@ -270,29 +270,8 @@ def upload(game, event):
                 .as_dict()
             )
 
-            DB.query(
-                """
-                INSERT INTO stats(game, player, pts, reb, ast, stl, blk, fls, to, fgm, fga, 3pm, 3pa)
-                VALUES (:game, :player, :pts, :reb, :ast, :stl, :blk, :fls, :tos, :fgm, :fga, :tpm, :tpa)
-                RETURNING id;
-            """,
-                game=game_id["id"],
-                player=player_id["id"],
-                pts=int(player["PTS"]),
-                reb=int(player["REB"]),
-                ast=int(player["AST"]),
-                stl=int(player["STL"]),
-                blk=int(player["BLK"]),
-                fls=int(player["FLS"]),
-                tos=int(player["TO"]),
-                fgm=int(player["FGM/FGA"].split("/")[0]),
-                fga=int(player["FGM/FGA"].split("/")[1]),
-                tpm=int(player["3PM/3PA"].split("/")[0]),
-                tpa=int(player["3PM/3PA"].split("/")[1]),
-            )
-
-            tx.commit()
-            return True
+        tx.commit()
+        return True
     except Exception as e:
         print(e)
         tx.rollback()
@@ -425,12 +404,9 @@ if __name__ == "__main__":
             "stream": game_stream,
         }
 
-        if st.button(
+        st.button(
             "Upload results",
             on_click=upload,
             args=(game, event),
             disabled=invalid,
-        ):
-            st.info("Results uploaded successfully!")
-        else:
-            st.warning("Please correct the errors above.")
+        )
