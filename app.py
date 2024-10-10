@@ -8,6 +8,11 @@ import pandas as pd
 from PIL import Image
 from ExtractTable import ExtractTable
 
+STATUS = """
+:exclamation: [banshee2k.com](https://banshee2k.com) will update
+automatically within a few minutes of uploading.
+"""
+
 API = ExtractTable(api_key=st.secrets["API_KEY"])
 DB = records.Database(st.secrets["DATABASE_URL"])
 TEAMS = [
@@ -152,135 +157,148 @@ def upload(game, event):
             "stream": game_stream,
         }
     """
-    event_id = (
-        DB.query(
-            """
-        SELECT id FROM event WHERE name=:name
-        """,
-            name=event,
-        )
-        .first()
-        .as_dict()
-    )
+    conn = DB.get_connection()
+    tx = conn.transaction()
 
-    home_id = (
-        DB.query(
-            """
-        SELECT id FROM team WHERE name=:name
-        """,
-            name=game["home"]["team"],
-        )
-        .first()
-        .as_dict()
-    )
-
-    away_id = (
-        DB.query(
-            """
-        SELECT id FROM team WHERE name=:name
-        """,
-            name=game["away"]["team"],
-        )
-        .first()
-        .as_dict()
-    )
-
-    game_id = (
-        DB.query(
-            """
-        INSERT INTO game(date, stream, home, away, event)
-        VALUES (:date, :stream, :home, :away, :event)
-        RETURNING id;
-    """,
-            date=game["date"].strftime("%Y-%m-%d"),
-            stream=game["stream"],
-            home=home_id["id"],
-            away=away_id["id"],
-            event=event_id["id"],
-        )
-        .first()
-        .as_dict()
-    )
-
-    # away team score
-    DB.query(
-        """
-        INSERT INTO score(team, game, \"1st\", \"2nd\", \"3rd\", \"4th\", won)
-        VALUES (:team, :game, :first, :second, :third, :fourth, :won)
-        RETURNING id;
-    """,
-        team=away_id["id"],
-        game=game_id["id"],
-        first=int(game["score"]["1st"][0]),
-        second=int(game["score"]["2nd"][0]),
-        third=int(game["score"]["3rd"][0]),
-        fourth=int(game["score"]["4th"][0]),
-        won=bool(game["score"]["Final"][0] > game["score"]["Final"][1]),
-    )
-
-    # home team score
-    DB.query(
-        """
-        INSERT INTO score(team, game, \"1st\", \"2nd\", \"3rd\", \"4th\", won)
-        VALUES (:team, :game, :first, :second, :third, :fourth, :won)
-        RETURNING id;
-    """,
-        team=home_id["id"],
-        game=game_id["id"],
-        first=int(game["score"]["1st"][1]),
-        second=int(game["score"]["2nd"][1]),
-        third=int(game["score"]["3rd"][1]),
-        fourth=int(game["score"]["4th"][1]),
-        won=bool(game["score"]["Final"][1] > game["score"]["Final"][0]),
-    )
-
-    # player stats
-    away_stats = game["away"]["boxscore"]
-    home_stats = game["home"]["boxscore"]
-
-    gamertags = []
-    for i in range(home_stats.shape[0]):
-        player = home_stats.iloc[i]
-        gamertags.append(player["Gamertag"])
-
-    for i in range(away_stats.shape[0]):
-        player = away_stats.iloc[i]
-        gamertags.append(player["Gamertag"])
-
-    for gamertag in gamertags:
-        player_id = (
+    try:
+        event_id = (
             DB.query(
                 """
-            SELECT id FROM player WHERE name=:name
+            SELECT id FROM event WHERE name=:name
             """,
-                name=gamertag,
+                name=event,
             )
             .first()
             .as_dict()
         )
 
-        DB.query(
-            """
-            INSERT INTO stats(game, player, pts, reb, ast, stl, blk, fls, to, fgm, fga, 3pm, 3pa)
-            VALUES (:game, :player, :pts, :reb, :ast, :stl, :blk, :fls, :tos, :fgm, :fga, :tpm, :tpa)
-            RETURNING id;
-        """,
-            game=game_id["id"],
-            player=player_id["id"],
-            pts=int(player["PTS"]),
-            reb=int(player["REB"]),
-            ast=int(player["AST"]),
-            stl=int(player["STL"]),
-            blk=int(player["BLK"]),
-            fls=int(player["FLS"]),
-            tos=int(player["TO"]),
-            fgm=int(player["FGM/FGA"].split("/")[0]),
-            fga=int(player["FGM/FGA"].split("/")[1]),
-            tpm=int(player["3PM/3PA"].split("/")[0]),
-            tpa=int(player["3PM/3PA"].split("/")[1]),
+        home_id = (
+            DB.query(
+                """
+            SELECT id FROM team WHERE name=:name
+            """,
+                name=game["home"]["team"],
+            )
+            .first()
+            .as_dict()
         )
 
-    st.success("Results uploaded successfully!")
+        away_id = (
+            DB.query(
+                """
+            SELECT id FROM team WHERE name=:name
+            """,
+                name=game["away"]["team"],
+            )
+            .first()
+            .as_dict()
+        )
+
+        game_id = (
+            DB.query(
+                """
+            INSERT INTO game(date, stream, home, away, event)
+            VALUES (:date, :stream, :home, :away, :event)
+            RETURNING id;
+        """,
+                date=game["date"].strftime("%Y-%m-%d"),
+                stream=game["stream"],
+                home=home_id["id"],
+                away=away_id["id"],
+                event=event_id["id"],
+            )
+            .first()
+            .as_dict()
+        )
+
+        tx.commit()
+
+        # away team score
+        DB.query(
+            """
+            INSERT INTO score(team, game, \"1st\", \"2nd\", \"3rd\", \"4th\", won)
+            VALUES (:team, :game, :first, :second, :third, :fourth, :won)
+            RETURNING id;
+        """,
+            team=away_id["id"],
+            game=game_id["id"],
+            first=int(game["score"]["1st"][0]),
+            second=int(game["score"]["2nd"][0]),
+            third=int(game["score"]["3rd"][0]),
+            fourth=int(game["score"]["4th"][0]),
+            won=bool(game["score"]["Final"][0] > game["score"]["Final"][1]),
+        )
+
+        # home team score
+        DB.query(
+            """
+            INSERT INTO score(team, game, \"1st\", \"2nd\", \"3rd\", \"4th\", won)
+            VALUES (:team, :game, :first, :second, :third, :fourth, :won)
+            RETURNING id;
+        """,
+            team=home_id["id"],
+            game=game_id["id"],
+            first=int(game["score"]["1st"][1]),
+            second=int(game["score"]["2nd"][1]),
+            third=int(game["score"]["3rd"][1]),
+            fourth=int(game["score"]["4th"][1]),
+            won=bool(game["score"]["Final"][1] > game["score"]["Final"][0]),
+        )
+
+        # player stats
+        away_stats = game["away"]["boxscore"]
+        home_stats = game["home"]["boxscore"]
+
+        gamertags = []
+        for i in range(home_stats.shape[0]):
+            player = home_stats.iloc[i]
+            gamertags.append(player["Gamertag"])
+
+        for i in range(away_stats.shape[0]):
+            player = away_stats.iloc[i]
+            gamertags.append(player["Gamertag"])
+
+        for gamertag in gamertags:
+            player_id = (
+                DB.query(
+                    """
+                SELECT id FROM player WHERE name=:name
+                """,
+                    name=gamertag,
+                )
+                .first()
+                .as_dict()
+            )
+
+            DB.query(
+                """
+                INSERT INTO stats(game, player, pts, reb, ast, stl, blk, fls, to, fgm, fga, 3pm, 3pa)
+                VALUES (:game, :player, :pts, :reb, :ast, :stl, :blk, :fls, :tos, :fgm, :fga, :tpm, :tpa)
+                RETURNING id;
+            """,
+                game=game_id["id"],
+                player=player_id["id"],
+                pts=int(player["PTS"]),
+                reb=int(player["REB"]),
+                ast=int(player["AST"]),
+                stl=int(player["STL"]),
+                blk=int(player["BLK"]),
+                fls=int(player["FLS"]),
+                tos=int(player["TO"]),
+                fgm=int(player["FGM/FGA"].split("/")[0]),
+                fga=int(player["FGM/FGA"].split("/")[1]),
+                tpm=int(player["3PM/3PA"].split("/")[0]),
+                tpa=int(player["3PM/3PA"].split("/")[1]),
+            )
+
+            tx.commit()
+            return True
+    except Exception as e:
+        print(e)
+        tx.rollback()
+        return False
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":
@@ -387,12 +405,7 @@ if __name__ == "__main__":
             invalid = True
 
         st.header("Step 3: Upload results")
-        st.info(
-            """
-            :exclamation: [banshee2k.com](https://banshee2k.com) will update
-            automatically within a few minutes of uploading.
-            """
-        )
+        st.info(STATUS)
 
         events = DB.query("SELECT name FROM event").as_dict()
         events = [e["name"] for e in events]
@@ -412,9 +425,12 @@ if __name__ == "__main__":
             "stream": game_stream,
         }
 
-        st.button(
+        if st.button(
             "Upload results",
             on_click=upload,
             args=(game, event),
             disabled=invalid,
-        )
+        ):
+            st.info("Results uploaded successfully!")
+        else:
+            st.warning("Please correct the errors above.")
