@@ -239,22 +239,50 @@ def upload(game, event):
         away_stats = game["away"]["boxscore"]
         home_stats = game["home"]["boxscore"]
 
-        gamertags = []
-        for i in range(home_stats.shape[0]):
-            player = home_stats.iloc[i]
-            gamertags.append(player["Gamertag"])
-
         for i in range(away_stats.shape[0]):
             player = away_stats.iloc[i]
-            gamertags.append(player["Gamertag"])
 
-        for gamertag in gamertags:
             player_id = (
                 DB.query(
                     """
                 SELECT id FROM player WHERE name=:name
                 """,
-                    name=gamertag,
+                    name=player["Gamertag"],
+                )
+                .first()
+                .as_dict()
+            )
+
+            conn.query(
+                """
+                INSERT INTO stats(game, player, pts, reb, ast, stl, blk, fls, \"to\", fgm, fga, \"3pm\", \"3pa\")
+                VALUES (:game, :player, :pts, :reb, :ast, :stl, :blk, :fls, :tos, :fgm, :fga, :tpm, :tpa)
+                RETURNING id;
+            """,
+                game=game_id["id"],
+                player=player_id["id"],
+                pts=int(player["PTS"]),
+                reb=int(player["REB"]),
+                ast=int(player["AST"]),
+                stl=int(player["STL"]),
+                blk=int(player["BLK"]),
+                fls=int(player["FLS"]),
+                tos=int(player["TO"]),
+                fgm=int(player["FGM/FGA"].split("/")[0]),
+                fga=int(player["FGM/FGA"].split("/")[1]),
+                tpm=int(player["3PM/3PA"].split("/")[0]),
+                tpa=int(player["3PM/3PA"].split("/")[1]),
+            )
+
+        for i in range(home_stats.shape[0]):
+            player = home_stats.iloc[i]
+
+            player_id = (
+                DB.query(
+                    """
+                SELECT id FROM player WHERE name=:name
+                """,
+                    name=player["Gamertag"],
                 )
                 .first()
                 .as_dict()
