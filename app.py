@@ -115,6 +115,33 @@ def boxscore(img):
     return df
 
 
+def check_data(df):
+    """Returns `True` if the data is in the correct format."""
+
+    # Check for the correct number of columns
+    if df.shape[1] != 11:
+        st.error("Incorrect number of columns")
+
+    # Check that the gamertag exists in the database
+    gamertags = DB.query("SELECT DISTINCT name FROM player").as_dict()
+    gamertags = [g["name"] for g in gamertags]
+
+    for gamertag in df["Gamertag"]:
+        if gamertag not in gamertags:
+            st.warning(f"Gamertag '{gamertag}' not found in database.")
+
+    # Check that fractional columns are in the correct format:
+    for name in ["FGM/FGA", "3PM/3PA", "FTM/FTA"]:
+        for value in df[name]:
+            if not value.count("/"):
+                st.error(f"Column '{name}' must be in the format 'X/Y'; got '{value}'.")
+            x, y = value.split("/")
+            if not x.isdigit() or not y.isdigit():
+                st.error(f"Column '{name}' must be digits; got '{value}'.")
+            if int(x) > int(y):
+                st.error(f"Column '{name}' must be X > Y; got '{value}'.")
+
+
 def upload(game, event):
     # df = home_grid['data']
 
@@ -219,7 +246,15 @@ if __name__ == "__main__":
         away_df = boxscore(away_box)
         # Remove first row
         away_df = away_df.iloc[1:]
-        away_grid = st.data_editor(away_df, use_container_width=True, hide_index=True)
+
+        away_grid = st.data_editor(
+            away_df,
+            use_container_width=True,
+            hide_index=True,
+            on_change=st.rerun,
+        )
+
+        check_data(away_grid)
 
         st.subheader("Home Stats")
 
@@ -230,7 +265,12 @@ if __name__ == "__main__":
         home_df = boxscore(home_box)
         # Remove first row
         home_df = home_df.iloc[1:]
-        home_grid = st.data_editor(home_df, use_container_width=True, hide_index=True)
+
+        home_grid = st.data_editor(
+            home_df, use_container_width=True, hide_index=True, on_change=st.rerun
+        )
+
+        check_data(home_grid)
 
         st.subheader("Score Breakdown")
 
