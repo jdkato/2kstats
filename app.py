@@ -249,7 +249,6 @@ def upload(game, event):
             gamertags.append(player["Gamertag"])
 
         for gamertag in gamertags:
-            print(gamertag)
             player_id = (
                 DB.query(
                     """
@@ -263,7 +262,7 @@ def upload(game, event):
 
             conn.query(
                 """
-                INSERT INTO stats(game, player, pts, reb, ast, stl, blk, fls, to, fgm, fga, \"3pm\", \"3pa\")
+                INSERT INTO stats(game, player, pts, reb, ast, stl, blk, fls, \"to\", fgm, fga, \"3pm\", \"3pa\")
                 VALUES (:game, :player, :pts, :reb, :ast, :stl, :blk, :fls, :tos, :fgm, :fga, :tpm, :tpa)
                 RETURNING id;
             """,
@@ -432,8 +431,8 @@ if __name__ == "__main__":
         )
 
         if pressed and st.session_state.form_valid:
-            st.success("Data uploaded successfully! 🎉")
+            st.success("Data uploaded successfully!", icon="🎉")
         elif pressed and st.session_state.form_valid is False:
-            st.error("Data upload failed. 😔")
+            st.error("Data upload failed. Please ask for help on Discord.", icon="😕")
         else:
             st.text("Press the button to upload the data.")
