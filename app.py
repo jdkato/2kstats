@@ -152,10 +152,16 @@ def check_data(df):
             if int(x) > int(y):
                 st.error(f"Column '{name}' must be X > Y; got '{value}'.")
 
-    # Check for strings with length zero
     for col in df.columns:
+        # Check for strings with length zero
         if df[col].str.len().eq(0).any():
             st.error(f"Column '{col}' contains empty strings.")
+        # Check for non-numeric values
+        if df[col].apply(lambda x: pd.to_numeric(x, errors="coerce")).isna().any():
+            # Skip gamertag, FGM/FGA, 3PM/3PA, FTM/FTA:
+            if col in ["Gamertag", "FGM/FGA", "3PM/3PA", "FTM/FTA"]:
+                continue
+            st.error(f"Column '{col}' contains non-numeric values.")
 
 
 def upload(game, event):
@@ -388,7 +394,7 @@ if __name__ == "__main__":
             away_df,
             use_container_width=True,
             on_change=st.rerun,
-            num_rows="dynamic",
+            hide_index=True,
         )
 
         check_data(away_grid)
@@ -407,7 +413,7 @@ if __name__ == "__main__":
             home_df,
             use_container_width=True,
             on_change=st.rerun,
-            num_rows="dynamic",
+            hide_index=True,
         )
 
         check_data(home_grid)
