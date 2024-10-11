@@ -468,6 +468,9 @@ if __name__ == "__main__":
             "stream": game_stream,
         }
 
+        if home == "Bad Boys" or away == "Bad Boys":
+            st.warning("Did you remember to change the team names to the correct ones?")
+
         pressed = st.button(
             "Upload results",
             on_click=upload,
