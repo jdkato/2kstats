@@ -18,14 +18,14 @@ automatically within a few minutes of uploading.
 API = ExtractTable(api_key=st.secrets["API_KEY"])
 DB = records.Database(st.secrets["DATABASE_URL"])
 TEAMS = [
-    "Bad Boys",
+    "Bang Bros",
     "Brick Bros",
-    "Hectors Code",
+    "Max Prestige",
     "Overpowered",
-    "Secret Service",
+    "Snowkai",
     "Silver Swishers",
-    "Splash Dynasty",
-    "The Diddlers",
+    "New Vision",
+    "Washed Stepdads",
 ]
 
 
